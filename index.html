@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AstroAlign</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: black;
+      color: white;
+      overflow: hidden;
+    }
+    #splash, #camera-container {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100vh;
+      text-align: center;
+    }
+    #splash {
+      display: flex;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    p {
+      font-size: 1rem;
+      margin: 20px 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1.2rem;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    video {
+      display: none;
+      transform: rotate(180deg) scale(-1, 1); /* Southern Hemisphere alignment */
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+    #controls {
+      display: none;
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+    }
+    #controls button {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+<div id="splash">
+  <h1>AstroAlign</h1>
+  <p>A simple app to align southern hemisphere constellations with their reference perspectives.</p>
+  <button id="install-btn">Save to Phone</button>
+  <button id="start-camera">Start Camera</button>
+</div>
+
+<div id="camera-container">
+  <video id="camera" autoplay playsinline></video>
+  <div id="controls">
+    <button id="stop-camera">Stop Camera</button>
+  </div>
+</div>
+
+<script>
+  let deferredPrompt;
+  const splash = document.getElementById('splash');
+  const cameraContainer = document.getElementById('camera-container');
+  const camera = document.getElementById('camera');
+  const startCameraBtn = document.getElementById('start-camera');
+  const stopCameraBtn = document.getElementById('stop-camera');
+  const controls = document.getElementById('controls');
+  const installBtn = document.getElementById('install-btn');
+
+  // PWA Install Event
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block';
+  });
+
+  installBtn.addEventListener('click', () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('PWA installed');
+        }
+        deferredPrompt = null;
+      });
+    }
+  });
+
+  // Start Camera
+  startCameraBtn.addEventListener('click', async () => {
+    splash.style.display = 'none';
+    cameraContainer.style.display = 'flex';
+    controls.style.display = 'block';
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      camera.srcObject = stream;
+      camera.style.display = 'block';
+    } catch (err) {
+      alert('Unable to access the camera. Please check permissions.');
+      console.error(err);
+      returnToSplash();
+    }
+  });
+
+  // Stop Camera
+  stopCameraBtn.addEventListener('click', () => {
+    const stream = camera.srcObject;
+    if (stream) {
+      const tracks = stream.getTracks();
+      tracks.forEach((track) => track.stop());
+    }
+    returnToSplash();
+  });
+
+  // Return to Splash Screen
+  function returnToSplash() {
+    camera.style.display = 'none';
+    camera.srcObject = null;
+    splash.style.display = 'flex';
+    cameraContainer.style.display = 'none';
+    controls.style.display = 'none';
+  }
+
+  // Tap to Show/Hide Controls
+  camera.addEventListener('click', () => {
+    controls.style.display = controls.style.display === 'block' ? 'none' : 'block';
+  });
+
+  // Register Service Worker for PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(() => console.log('Service Worker registered'))
+      .catch((err) => console.error('Service Worker registration failed:', err));
+  }
+</script>
+
+</body>
+</html>
