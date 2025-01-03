@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astroalign-cache-v1';
+const CACHE_NAME = 'astroalign-cache-v2';
 const urlsToCache = [
   './',
   './index.html', // Your HTML file
